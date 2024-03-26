@@ -18,6 +18,7 @@ import warnings
 from pathlib import Path
 
 from sphinx.util import logging
+from security import safe_command
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,10 @@ def load_terra_docs(app):
 
     version = _get_current_terra_version(app)
     with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(
-            ["git", "clone", "https://github.com/Qiskit/qiskit-terra", temp_dir],
+        safe_command.run(subprocess.run, ["git", "clone", "https://github.com/Qiskit/qiskit-terra", temp_dir],
             capture_output=True,
         )
-        subprocess.run(["git", "checkout", version], cwd=temp_dir, capture_output=True)
+        safe_command.run(subprocess.run, ["git", "checkout", version], cwd=temp_dir, capture_output=True)
         for d in TERRA_DIRS:
             src = Path(temp_dir, "docs", "apidocs" if d == "apidoc" else d)
             shutil.copytree(src, Path(app.srcdir, d))
@@ -70,8 +70,7 @@ def load_tutorials(app):
         )
         return
     with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(
-            ["git", "clone", "https://github.com/Qiskit/qiskit-tutorials", temp_dir],
+        safe_command.run(subprocess.run, ["git", "clone", "https://github.com/Qiskit/qiskit-tutorials", temp_dir],
             capture_output=True,
         )
         for d in ["algorithms", "circuits", "circuits_advanced", "operators"]:
@@ -88,7 +87,7 @@ def add_versions_to_config(_app, config):
     # still existed, so are based on tags that don't exist in the Qiskit package repo.
     versions = ["0.19"] + [f"0.{x}" for x in range(24, first_unified_zero_minor)]
 
-    proc = subprocess.run(["git", "describe", "--abbrev=0"], capture_output=True, check=True)
+    proc = safe_command.run(subprocess.run, ["git", "describe", "--abbrev=0"], capture_output=True, check=True)
     current_version = proc.stdout.decode("utf8")
     current_version_info = current_version.split(".")
     if current_version_info[0] != "0":
